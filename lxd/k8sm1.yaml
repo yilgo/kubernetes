@@ -1,0 +1,37 @@
+config:
+  user.user-data: |
+    #cloud-config
+    ssh_pwauth: yes 
+    users:
+      - name: ubuntu
+        passwd: "$6$4rj3OKnKKVtD1qKx$9fF4V0U6r9rSOdxUki2dl658SySXnBDecTo4W4Oypu9CiqUXOOVAoqxTZzIyXVi4hjZOg5pkuVKkhhBK9BUZn0"
+        lock_passwd: false
+        groups: lxd
+        shell: /bin/bash
+        sudo: ALL=(ALL) NOPASSWD:ALL
+    timezone: Europe/Berlin
+    runcmd:
+      - [ /usr/bin/snap, install, microk8s, --classic ]
+      - [ /usr/bin/sleep, 5]
+      - [ /usr/bin/sudo, /usr/sbin/usermod, -a, -G, microk8s, ubuntu]
+      - [ /usr/bin/sudo, /usr/bin/chown, -f, -R, ubuntu, ~/.kube ]
+      - [ /usr/bin/newgrp, microk8s ]
+        #- [ /snap/bin/microk8s, enable, 'dashboard dns rbac metrics-server' ]
+    final_message: "The system is finally up, after $UPTIME seconds"
+  limits.cpu: "2"
+  limits.memory: 4GB
+  limits.memory.swap: "false"
+description: LXD profile for k8s master node-ONE
+devices:
+  enp5s0:
+    name: enp5s0
+    ipv4.address: 10.5.100.10
+    nictype: bridged
+    parent: lxdbr0
+    type: nic
+  root:
+    path: /
+    pool: lab
+    type: disk
+name: k8sm1
+used_by: []
