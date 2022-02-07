@@ -1,0 +1,51 @@
+config:
+  user.user-data: |
+    #cloud-config
+    ssh_pwauth: yes 
+    users:
+      - name: ubuntu
+        passwd: "$6$4rj3OKnKKVtD1qKx$9fF4V0U6r9rSOdxUki2dl658SySXnBDecTo4W4Oypu9CiqUXOOVAoqxTZzIyXVi4hjZOg5pkuVKkhhBK9BUZn0"
+        lock_passwd: false
+        groups: lxd
+        shell: /bin/bash
+        sudo: ALL=(ALL) NOPASSWD:ALL
+    timezone: Europe/Berlin
+    final_message: "The system is finally up, after $UPTIME seconds"
+    runcmd:
+      - [ /usr/bin/apt, update ]
+      - [ /usr/bin/snap, install, microk8s, --classic ]
+      - [ /usr/bin/sleep, 5]
+      - [ /usr/bin/sudo, /usr/sbin/usermod, -a, -G, microk8s, ubuntu]
+      - [ /usr/bin/sudo, /usr/bin/chown, -f, -R, ubuntu, ~/.kube ]
+      - [ /usr/bin/newgrp, microk8s ]
+  user.network-config: |-
+    version: 2
+    ethernets: 
+      enp5s0:
+        dhcp4: false
+        addresses: [10.5.100.11/24]
+        gateway4: 10.5.100.254
+        nameservers:
+          addresses: [10.5.100.1]
+          search: [homelab.io]
+  limits.cpu: "4"
+  limits.memory: 8GB
+  limits.memory.swap: "false"
+  boot.autostart: "false"
+  security.privileged: true
+  security.nesting: true 
+description: LXD profile for K8S Master Node - 1
+devices:
+  enp5s0:
+    name: enp5s0
+    nictype: bridged
+    parent: ovslxd0
+    type: nic
+    vlan: 100
+  root:
+    size: 15GiB
+    path: /
+    pool: lab
+    type: disk
+name: k8sm1
+used_by: []

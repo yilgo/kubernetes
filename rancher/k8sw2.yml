@@ -1,0 +1,90 @@
+config:
+  user.user-data: |
+    #cloud-config
+    power_state:
+      mode: reboot
+      delay: "+1"
+    packages:
+      - chrony
+      - nfs-common
+    ssh_pwauth: yes 
+    users:
+      - name: ubuntu
+        passwd: "$6$4rj3OKnKKVtD1qKx$9fF4V0U6r9rSOdxUki2dl658SySXnBDecTo4W4Oypu9CiqUXOOVAoqxTZzIyXVi4hjZOg5pkuVKkhhBK9BUZn0"
+        lock_passwd: false
+        shell: /bin/bash
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        ssh_authorized_keys:
+          - ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAGEA3FSyQwBI6Z+nCSjUUk8EEAnnkhXlukKoUPND/RRClWz2s5TCzIkd3Ou5+Cyz71X0XmazM3l5WgeErvtIwQMyT1KjNoMhoJMrJnWqQPOt5Q8zWd9qG7PBl9+eiH5qV7NZ mykey@host
+    timezone: Europe/Berlin
+    final_message: "The system is finally up, after $UPTIME seconds"
+    package_update: true
+    runcmd:
+      - curl https://releases.rancher.com/install-docker/20.10.sh | sh
+      - /usr/bin/sleep 5
+      - /usr/sbin/usermod -aG docker ubuntu
+      - [ systemctl, daemon-reload ]
+      - [ systemctl, enable, docker.service ]
+      - [ systemctl, start, --no-block, docker.service ]
+      - [ systemctl, enable, chronyd ]
+      - [ systemctl, start, --no-block, chronyd.service ]
+    write_files:
+      - path: /etc/modules-load.d/k8s.conf
+        owner: root:root
+        permissions: "0600"
+        content: |
+          overlay
+          br_netfilter
+      - path: /etc/sysctl.d/99-k8s.conf
+        permissions: "0600"
+        content: |
+          net.bridge.bridge-nf-call-iptables  = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward                 = 1
+        owner: root:root
+      - path: /etc/chrony/chrony.conf
+        owner: root:root
+        permission: "0600"
+        content: |
+          server 10.5.100.254 iburst
+          keyfile /etc/chrony/chrony.keys
+          driftfile /var/lib/chrony/chrony.drift
+          logdir /var/log/chrony
+          maxupdateskew 100.0
+          rtcsync
+          makestep 1 3
+  user.network-config: |-
+    version: 2
+    ethernets: 
+      enp5s0:
+        dhcp4: false
+        addresses: [10.5.100.17/24]
+        gateway4: 10.5.100.254
+        nameservers:
+          addresses: [10.5.100.1]
+          search: [homelab.io]
+  limits.cpu: "4"
+  limits.memory: 12GB
+  limits.memory.swap: "false"
+  boot.autostart: "false"
+  security.privileged: true
+  security.nesting: true 
+description: LXD profile for K8S Worker Node - 2
+devices:
+  enp5s0:
+    name: enp5s0
+    nictype: bridged
+    parent: ovslxd0
+    type: nic
+    vlan: 100
+  root:
+    size: 30GiB
+    path: /
+    pool: lab
+    type: disk
+  sdb:
+    pool: lab
+    source: k8sw2_lab_disk_2
+    type: disk
+name: k8sw2
+used_by: []
