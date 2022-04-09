@@ -92,7 +92,7 @@ lxc launch ubuntu:20.04 k8sw3 --profile k8sw3 --vm
 
 
 
-## List the Nodes
+## List the Profiles
 
 ```console
 lxc profile list
